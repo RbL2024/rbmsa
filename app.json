@@ -19,7 +19,9 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.rb2024.rbmsa",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",

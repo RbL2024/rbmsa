@@ -1,25 +1,83 @@
-import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import ToastManager, { Toast } from 'toastify-react-native';
 import React, { useState } from 'react';
 import { Link } from 'expo-router';
 import { FontAwesome as FA } from '@expo/vector-icons';
-
-
 import RDim from '@/hooks/useDimensions';
-
-
 import bikeLogo from '../../assets/images/bikeLogo.png';
+import { useNavigation } from '@react-navigation/native';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const setLoggedIn = async (isLoggedIn) => {
+    try {
+        await AsyncStorage.setItem('isLoggedIn', JSON.stringify(isLoggedIn));
+    } catch (error) {
+        console.error('Error setting login status:', error);
+    }
+};
+
+const storeData = async (cId, cName, cAddress, cPhone) => {
+    try {
+        await AsyncStorage.setItem('id', cId);
+        await AsyncStorage.setItem('name', cName);
+        await AsyncStorage.setItem('address', cAddress);
+        await AsyncStorage.setItem('phone', cPhone);
+    } catch (e) {
+        console.error('Failed to save data', e);
+    }
+};
 
 export default function Login() {
+    const nav = useNavigation();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const clearInputs = () => {
         setUsername('');
         setPassword('');
     }
 
+
+    const handleLogin = async () => {
+        if (username === '' || password === '') {
+            Toast.error('Please fill in all fields');
+            return;
+        }
+        setLoading(true);
+        try {
+            const data = {
+                i_username: username,
+                i_password: password
+            }
+            const logAcc = await axios.post('https://rbms-backend-g216.onrender.com/rbmsa/loginAcc', data);
+
+            if (logAcc.data.isFound) {
+                Toast.success(logAcc.data.message);
+                setLoggedIn(true);
+
+                const cId = logAcc.data.loginData._id;
+                const cName = logAcc.data.loginData.c_first_name + " " + String(logAcc.data.loginData.c_middle_name).charAt(0) + ". " + logAcc.data.loginData.c_last_name
+                const cAddress = logAcc.data.loginData.c_full_address.city
+                const cPhone = logAcc.data.loginData.c_phone
+                storeData(cId, cName, cAddress, cPhone);
+                await delay(2000);
+                clearInputs();
+                nav.navigate('account');
+            } else {
+                Toast.error(logAcc.data.message);
+            }
+        } catch (error) {
+            console.log(error)
+        } finally {
+            setLoading(false);
+        }
+
+    }
 
 
     return (
@@ -42,7 +100,7 @@ export default function Login() {
                     <TextInput
                         style={styles.input}
                         value={username}
-                        onChangeText={setUsername} 
+                        onChangeText={setUsername}
                         keyboardType="default" // Options: 'default', 'numeric', 'email-address', etc.
                         returnKeyType="done" // Change the return key type
                         autoCapitalize="none"
@@ -52,7 +110,7 @@ export default function Login() {
                     <Text style={styles.inputLabel}>Password</Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <TextInput
-                            style={[styles.input, {paddingRight: 40}]}
+                            style={[styles.input, { paddingRight: 40 }]}
                             value={password}
                             onChangeText={setPassword} // Update the state when the text changes
                             secureTextEntry={!showPassword} // Toggle secure text entry
@@ -66,9 +124,13 @@ export default function Login() {
                     </View>
                 </View>
                 <View style={{ justifyContent: 'center', alignItems: 'center', paddingTop: RDim.height * 0.02 }}>
-                    <TouchableOpacity style={styles.button} onPress={() => handleLogin()}>
-                        <Text style={styles.buttonText}>Sign In</Text>
-                    </TouchableOpacity>
+                    {loading ? (
+                        <ActivityIndicator size="large" color="#355E3B" /> // Show loading indicator
+                    ) : (
+                        <TouchableOpacity style={styles.button} onPress={() => handleLogin()}>
+                            <Text style={styles.buttonText}>Sign In</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
             <View style={styles.aha}>

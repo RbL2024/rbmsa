@@ -1,8 +1,10 @@
 import { StyleSheet, Text, View, ImageBackground, TouchableOpacity } from 'react-native'
-import React from 'react'
+import React, {useState} from 'react'
 import { useRoute } from '@react-navigation/native';
 import { LinearGradient } from "expo-linear-gradient";
 import { Link } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 
 import RDim from '@/hooks/useDimensions';
 
@@ -10,8 +12,32 @@ export default function Preview() {
     const route = useRoute();
     // console.log(route.params);
     const { params } = route;
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     const { _id, bike_id, bike_name, bike_rent_price, bike_image_url, bike_desc } = params;
+
+    const checkLoginStatus = async () => {
+        try {
+            const value = await AsyncStorage.getItem('isLoggedIn'); // Retrieve value from AsyncStorage
+            if (value !== null) {
+                setIsLoggedIn(JSON.parse(value)); // Parse and set the login status
+            } else {
+                setIsLoggedIn(false); // Default to false if value is null
+            }
+        } catch (error) {
+            console.error('Error retrieving login status:', error);
+        } finally {
+            setLoading(false); // Stop loading
+        }
+    };
+
+    useFocusEffect(
+        React.useCallback(() => {
+          setLoading(true); // Set loading to true before checking
+          checkLoginStatus(); // Call the function to check login status
+        }, [])
+      );
 
 
     return (
@@ -35,10 +61,11 @@ export default function Preview() {
                             <Text style={{ fontFamily: 'mplus', fontSize: RDim.scale * 8 }}>{bike_rent_price} per hour</Text>
                         </View>
 
-                        <Link href={{
-                            pathname: '/reserve',
-                            params: { ...params }
-                        }}
+                        <Link 
+                            href={{
+                                pathname: isLoggedIn ? '/reserve' : '/account',
+                                params: isLoggedIn ? { ...params } : ''
+                            }}
                         >
                             <View style={styles.btnReserve}>
                                 <Text style={[{ fontFamily: 'mplus', fontSize: RDim.scale * 10, color: 'white' }]} >Reserve</Text>

@@ -5,12 +5,14 @@ import { FontAwesome as FA } from '@expo/vector-icons'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import EvilIcons from '@expo/vector-icons/EvilIcons';
 import RDim from '@/hooks/useDimensions';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker from 'react-native-modal-datetime-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Toast } from 'toastify-react-native';
+import ToastManager, { Toast } from 'toastify-react-native';
 import { useNavigation } from '@react-navigation/native';
 import axios from 'axios';
+import { useFocusEffect } from '@react-navigation/native';
 
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const HorizontalLine = ({ color = '#000', thickness = 1, mv = 5, style }) => {
     return <View style={[styles.line, { backgroundColor: color, height: thickness, marginVertical: mv }, style]} />;
@@ -19,13 +21,13 @@ const HorizontalLine = ({ color = '#000', thickness = 1, mv = 5, style }) => {
 
 const getData = async () => {
     try {
-
+        const id = await AsyncStorage.getItem('id');
         const name = await AsyncStorage.getItem('name');
         const address = await AsyncStorage.getItem('address');
         const phone = await AsyncStorage.getItem('phone');
 
-        if (name !== null && address !== null && phone !== null) {
-            return { name, address, phone };
+        if (id !== null && name !== null && address !== null && phone !== null) {
+            return { id, name, address, phone };
         } else {
             return 'undefined';
         }
@@ -36,50 +38,36 @@ const getData = async () => {
 
 const Reserve = () => {
 
-    const formatDate = (date) => {
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-        const year = date.getFullYear();
-        return `${month}/${day}/${year}`; // Format as MM/DD/YYYY
-    };
     const formatTime = (date) => {
         const hours = String(date.getHours()).padStart(2, '0'); // Get hours and pad with leading zeros
         const minutes = String(date.getMinutes()).padStart(2, '0'); // Get minutes and pad with leading zeros
         return `${hours}:${minutes}`; // Format as HH:MM
     };
-    const [date, setDate] = useState(new Date());
-    const [mode, setMode] = useState('date');
-    const [show, setShow] = useState(false);
+    
+    const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+    const [selectedTime, setSelectedTime] = useState(formatTime(new Date()));
 
-    const [gettime, setGettime] = useState(formatTime(date));
-
-    const onChange = (event, selectedDate) => {
-        const currentDate = selectedDate;
-        setShow(false);
-        setDate(currentDate);
-        setGettime(formatTime(currentDate));
-        // console.log(currentDate);
+    const showTimePicker = () => {
+        setDatePickerVisibility(true);
     };
 
-    const showMode = (currentMode) => {
-        setShow(true);
-        setMode(currentMode);
+    const hideTimePicker = () => {
+        setDatePickerVisibility(false);
     };
 
-    const showDatepicker = () => {
-        showMode('date');
+    const handleConfirm = (date) => {
+        hideTimePicker();
+        const formattedTime = formatTime(date);
+        setSelectedTime(formattedTime);
     };
 
-    const showTimepicker = () => {
-        showMode('time');
-    };
-
+    
 
 
 
     const route = useRoute();
     // console.log(route.params);
-    const { params } = route; 
+    const { params } = route;
 
     const { _id, bike_id, bike_image_url, bike_name, bike_rent_price } = params;
 
@@ -125,17 +113,62 @@ const Reserve = () => {
         }
     };
 
-    useEffect(() => {
-        checkLoginStatus(); // Check login status on component mount
-    }, []);
 
 
-    
+    const handleReserve = async () => {
+
+        const userData = await getData();
+
+        const reserveData = {
+            uID: _id,
+            bike_id: bike_id,
+            timeofuse: selectedTime,
+            duration: dou.toString(),
+            paymentTotal: totalFee.toString(),
+            bike_status: "reserved",
+            ...userData
+        }
+        console.log(reserveData);
+
+        try {
+            const response = await axios.put(`https://rbms-backend-g216.onrender.com/rbmsa/UpdateReserve/${_id}`, reserveData);
+            if (response.data.isReserved) {
+                Toast.success(response.data.message);
+                delay(2000);
+                nav.navigate('index');
+            } else {
+                Toast.error(response.data.message + ", Please login first");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    const [gotuser, setGotuser] = useState({});
+    const getuser = async () => {
+        setGotuser(await getData())
+    }
+    useFocusEffect(
+        React.useCallback(() => {
+            getuser();
+            checkLoginStatus();
+        })
+    )
+
 
     return (
         <View style={{ flex: 1 }}>
+            <ToastManager
+                position="top"
+                height={45}
+                width={RDim.width * 0.8}
+                textStyle={{ fontSize: 12 }}
+                duration={2000}
+                showCloseIcon={false}
+                showProgressBar={false}
+            />
             <View>
-                <Text style={{ fontSize: RDim.width * 0.06, fontFamily: 'mplus', paddingLeft: 12, textAlign:'center' }}>User Details</Text>
+                <Text style={{ fontSize: RDim.width * 0.06, fontFamily: 'mplus', paddingLeft: 12, textAlign: 'center' }}>User Details</Text>
             </View>
             <HorizontalLine />
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: RDim.width * 0.03, alignItems: 'center' }}>
@@ -163,7 +196,7 @@ const Reserve = () => {
                 <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                     {/* <FA name='phone' size={RDim.width * 0.08} color={'#355E3B'} /> */}
                     <MaterialIcons name="phone-android" size={RDim.width * 0.08} color={'#355E3B'} />
-                    <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus'}}>Phone</Text>
+                    <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus' }}>Phone</Text>
                 </View>
                 <View>
                     <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus', paddingRight: 5 }}>{gotuser.phone}</Text>
@@ -185,24 +218,21 @@ const Reserve = () => {
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <TextInput
                                     style={styles.input}
-                                    value={gettime}
-                                    onChangeText={setGettime} // Update the state when the text changes
+                                    value={selectedTime}
+                                    onChangeText={setSelectedTime} // Update the state when the text changes
                                     // Other optional props
                                     keyboardType="default" // Options: 'default', 'numeric', 'email-address', etc.
                                     returnKeyType="done" // Change the return key type
                                     autoCapitalize="none"
                                     readOnly
                                 />
-                                {show && (
-                                    <DateTimePicker
-                                        testID="dateTimePicker"
-                                        value={date}
-                                        mode={mode}
-                                        is24Hour={true}
-                                        onChange={onChange}
-                                    />
-                                )}
-                                <TouchableOpacity onPress={() => showTimepicker()} style={{ position: 'absolute', right: 0, top: 0, padding: 10 }}>
+                                <DateTimePicker
+                                    isVisible={isDatePickerVisible}
+                                    mode="time"
+                                    onConfirm={handleConfirm}
+                                    onCancel={hideTimePicker}
+                                />
+                                <TouchableOpacity onPress={() => showTimePicker()} style={{ position: 'absolute', right: 0, top: 0, padding: 10 }}>
                                     <FA name='clock-o' size={RDim.scale * 7} color={'#355E3B'} />
                                 </TouchableOpacity>
                             </View>
@@ -248,7 +278,7 @@ const Reserve = () => {
                         <Text style={{ fontSize: RDim.width * 0.055, fontFamily: 'mplus' }}>GCash Only</Text>
                     </View>
                     <View style={{}}>
-                        <TouchableOpacity  style={{ backgroundColor: '#355E3B', width: RDim.width * 0.5, height: RDim.height * 0.06, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginTop: 10, borderRadius: 10 }}>
+                        <TouchableOpacity onPress={() => handleReserve()} style={{ backgroundColor: '#355E3B', width: RDim.width * 0.5, height: RDim.height * 0.06, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginTop: 10, borderRadius: 10 }}>
                             <Text style={{ color: 'white', fontFamily: 'mplus', fontSize: RDim.width * 0.07 }}>Reserve Now</Text>
                         </TouchableOpacity>
                     </View>
@@ -268,7 +298,7 @@ const styles = StyleSheet.create({
         width: RDim.width * 0.4,
     },
     inputLabel: {
-        fontSize: RDim.width * 0.05,
+        fontSize: RDim.width * 0.04,
         fontFamily: 'mplus',
     },
     input: {
