@@ -13,7 +13,7 @@ export default function Layout() {
         },
       }}>
       {/* Optionally configure static options outside the route.*/}
-      <Stack.Screen name="bikes" options={{}} />
+      <Stack.Screen name="bikes" options={{headerShown: false}} />
       <Stack.Screen name="lock" options={{}} />
       <Stack.Screen name="timetrack" options={{}} />
     </Stack>

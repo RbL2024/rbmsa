@@ -19,12 +19,14 @@ const setLoggedIn = async (isLoggedIn) => {
     }
 };
 
-const storeData = async (cId, cName, cAddress, cPhone) => {
+const storeData = async (cId, cName, cAddress, cPhone, cBDay, cEmail) => {
     try {
         await AsyncStorage.setItem('id', cId);
         await AsyncStorage.setItem('name', cName);
         await AsyncStorage.setItem('address', cAddress);
         await AsyncStorage.setItem('phone', cPhone);
+        await AsyncStorage.setItem('bday', cBDay);
+        await AsyncStorage.setItem('email', cEmail);
     } catch (e) {
         console.error('Failed to save data', e);
     }
@@ -62,9 +64,11 @@ export default function Login() {
 
                 const cId = logAcc.data.loginData._id;
                 const cName = logAcc.data.loginData.c_first_name + " " + String(logAcc.data.loginData.c_middle_name).charAt(0) + ". " + logAcc.data.loginData.c_last_name
-                const cAddress = logAcc.data.loginData.c_full_address.city
+                const cAddress = logAcc.data.loginData.c_full_address.street + ", " + logAcc.data.loginData.c_full_address.city + ", " +  logAcc.data.loginData.c_full_address.province 
                 const cPhone = logAcc.data.loginData.c_phone
-                storeData(cId, cName, cAddress, cPhone);
+                const cBDay = logAcc.data.loginData.c_bdate;
+                const cEmail = logAcc.data.loginData.c_email;
+                storeData(cId, cName, cAddress, cPhone, cBDay, cEmail);
                 await delay(2000);
                 clearInputs();
                 nav.navigate('account');

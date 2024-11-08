@@ -1,9 +1,8 @@
-import { StyleSheet, Text, View, ImageBackground, TextInput, TouchableOpacity, Button } from 'react-native'
+import { StyleSheet, Text, View, ImageBackground, TextInput, TouchableOpacity, Button, ActivityIndicator } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { useRoute } from '@react-navigation/native';
 import { FontAwesome as FA } from '@expo/vector-icons'
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import EvilIcons from '@expo/vector-icons/EvilIcons';
 import RDim from '@/hooks/useDimensions';
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -25,9 +24,12 @@ const getData = async () => {
         const name = await AsyncStorage.getItem('name');
         const address = await AsyncStorage.getItem('address');
         const phone = await AsyncStorage.getItem('phone');
+        const email = await AsyncStorage.getItem('email');
 
-        if (id !== null && name !== null && address !== null && phone !== null) {
-            return { id, name, address, phone };
+        if (id !== null && name !== null && address !== null && phone !== null && email !== null) {
+
+            return { id, name, address, phone, email };
+
         } else {
             return 'undefined';
         }
@@ -39,11 +41,12 @@ const getData = async () => {
 const Reserve = () => {
 
     const formatTime = (date) => {
-        const hours = String(date.getHours()).padStart(2, '0'); // Get hours and pad with leading zeros
-        const minutes = String(date.getMinutes()).padStart(2, '0'); // Get minutes and pad with leading zeros
-        return `${hours}:${minutes}`; // Format as HH:MM
+        const hours = date.getHours();
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const formattedHours = hours % 12 || 12; // Convert to 12-hour format
+        return `${formattedHours}:${minutes}`;
     };
-    
+
     const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
     const [selectedTime, setSelectedTime] = useState(formatTime(new Date()));
 
@@ -61,7 +64,7 @@ const Reserve = () => {
         setSelectedTime(formattedTime);
     };
 
-    
+
 
 
 
@@ -113,10 +116,10 @@ const Reserve = () => {
         }
     };
 
-
+    const [loading, setLoading] = useState(false);
 
     const handleReserve = async () => {
-
+        setLoading(true);
         const userData = await getData();
 
         const reserveData = {
@@ -128,19 +131,23 @@ const Reserve = () => {
             bike_status: "reserved",
             ...userData
         }
-        console.log(reserveData);
+        // console.log(reserveData);
 
         try {
-            const response = await axios.put(`https://rbms-backend-g216.onrender.com/rbmsa/UpdateReserve/${_id}`, reserveData);
+            const localAPI = 'http://192.168.1.10:8917';
+            const cloudAPI = 'https://rbms-backend-g216.onrender.com';
+            const response = await axios.put(`${localAPI}/rbmsa/UpdateReserve/${_id}`, reserveData);
             if (response.data.isReserved) {
-                Toast.success(response.data.message);
-                delay(2000);
+                Toast.success(response.data.message + ', check your Time Tracker');
+                await delay(2000);
                 nav.navigate('index');
             } else {
                 Toast.error(response.data.message + ", Please login first");
             }
         } catch (error) {
             console.error(error);
+        } finally {
+            setLoading(false);
         }
     }
 
@@ -174,10 +181,10 @@ const Reserve = () => {
             <View style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: RDim.width * 0.03, alignItems: 'center' }}>
                 <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                     <FA name='user' size={RDim.width * 0.08} color={'#355E3B'} />
-                    <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus', paddingLeft: 10 }}>Name</Text>
+                    <Text style={{ fontSize: RDim.width * 0.040, fontFamily: 'mplus', paddingLeft: 10 }}>Name</Text>
                 </View>
                 <View>
-                    <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus' }}>{gotuser.name}</Text>
+                    <Text style={{ fontSize: RDim.width * 0.040, fontFamily: 'mplus' }}>{gotuser.name}</Text>
                 </View>
             </View>
             <HorizontalLine />
@@ -185,10 +192,10 @@ const Reserve = () => {
                 <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                     {/* <EvilIcons name="location" size={RDim.width * 0.08} color={'#355E3B'} /> */}
                     <MaterialIcons name="location-on" size={RDim.width * 0.08} color={'#355E3B'} />
-                    <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus' }}>Address</Text>
+                    <Text style={{ fontSize: RDim.width * 0.040, fontFamily: 'mplus' }}>Address</Text>
                 </View>
                 <View>
-                    <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus', paddingRight: 5 }}>{gotuser.address}</Text>
+                    <Text style={{ fontSize: RDim.width * 0.030, fontFamily: 'mplus', paddingRight: 5 }}>{gotuser.address}</Text>
                 </View>
             </View>
             <HorizontalLine />
@@ -196,10 +203,10 @@ const Reserve = () => {
                 <View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center' }}>
                     {/* <FA name='phone' size={RDim.width * 0.08} color={'#355E3B'} /> */}
                     <MaterialIcons name="phone-android" size={RDim.width * 0.08} color={'#355E3B'} />
-                    <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus' }}>Phone</Text>
+                    <Text style={{ fontSize: RDim.width * 0.040, fontFamily: 'mplus' }}>Phone</Text>
                 </View>
                 <View>
-                    <Text style={{ fontSize: RDim.width * 0.050, fontFamily: 'mplus', paddingRight: 5 }}>{gotuser.phone}</Text>
+                    <Text style={{ fontSize: RDim.width * 0.040, fontFamily: 'mplus', paddingRight: 5 }}>{gotuser.phone}</Text>
                 </View>
             </View>
             <HorizontalLine />
@@ -217,7 +224,7 @@ const Reserve = () => {
                             <Text style={styles.inputLabel}>Set time for reserve</Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input]}
                                     value={selectedTime}
                                     onChangeText={setSelectedTime} // Update the state when the text changes
                                     // Other optional props
@@ -278,9 +285,16 @@ const Reserve = () => {
                         <Text style={{ fontSize: RDim.width * 0.055, fontFamily: 'mplus' }}>GCash Only</Text>
                     </View>
                     <View style={{}}>
-                        <TouchableOpacity onPress={() => handleReserve()} style={{ backgroundColor: '#355E3B', width: RDim.width * 0.5, height: RDim.height * 0.06, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginTop: 10, borderRadius: 10 }}>
-                            <Text style={{ color: 'white', fontFamily: 'mplus', fontSize: RDim.width * 0.07 }}>Reserve Now</Text>
-                        </TouchableOpacity>
+                        {
+                            loading ? (
+                                <ActivityIndicator size="large" color="#0000ff" />
+                            ) : (
+                                <TouchableOpacity onPress={() => handleReserve()} style={{ backgroundColor: '#355E3B', width: RDim.width * 0.5, height: RDim.height * 0.06, justifyContent: 'center', alignItems: 'center', alignSelf: 'center', marginTop: 10, borderRadius: 10 }}>
+                                    <Text style={{ color: 'white', fontFamily: 'mplus', fontSize: RDim.width * 0.07 }}>Reserve Now</Text>
+                                </TouchableOpacity>
+                            )
+                        }
+
                     </View>
                 </View>
             </View>
@@ -309,7 +323,7 @@ const styles = StyleSheet.create({
         paddingStart: 40,
         backgroundColor: '#FFF',
         fontFamily: 'mplus',
-        fontSize: RDim.scale * 10,
+        fontSize: RDim.width * .05,
         textAlign: 'center'
     },
     douinput: {
@@ -319,7 +333,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         backgroundColor: '#FFF',
         fontFamily: 'mplus',
-        fontSize: RDim.scale * 10,
+        fontSize: RDim.width * .05,
         textAlign: 'center'
     },
     iconButton: {

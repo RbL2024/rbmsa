@@ -16,8 +16,8 @@ const useConnection = () => {
         
         // Check server connection
         try {
-          const response = await axios.get('http://192.168.1.10:8917/rbmsa/check-connection');
-          // const response = await axios.get('https://rbms-backend-g216.onrender.com/rbmsa/check-connection');
+          // const response = await axios.get('http://192.168.1.10:8917/rbmsa/check-connection');
+          const response = await axios.get('https://rbms-backend-g216.onrender.com/rbmsa/check-connection');
           setServerStatus(`Server is reachable: ${response.data.message}`);
           setIsConnected(true);
         } catch (error) {

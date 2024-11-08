@@ -50,6 +50,7 @@ export default function RootLayout() {
         <Stack.Screen name="(HomeScreens)" options={{ headerShown: false }}/>
         <Stack.Screen name="(bikePrevRes)" options={{ headerShown: false }}/>
         <Stack.Screen name="(account)" options={{ headerShown: false }}/>
+        <Stack.Screen name="(allbikes)" options={{ headerShown: false }}/>
         <Stack.Screen name="+not-found" />
       </Stack>
     </View>

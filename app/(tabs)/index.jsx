@@ -42,14 +42,14 @@ import { Toast } from "toastify-react-native";
 
 const Card = ({ title, description, imageSource }) => {
   return (
-    <View>
+    <View style={styles.card}>
       <ImageBackground
         source={imageSource}
         style={styles.imageBackground}
         imageStyle={styles.image}
       >
         <View style={styles.cardContent}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title} numberOfLines={1}>{title}</Text>
           <Text style={styles.description}>{description}</Text>
         </View>
       </ImageBackground>
@@ -61,7 +61,6 @@ export default function Index() {
   const [searchText, setSearchText] = useState("");
   // Create a ref for the TextInput
   const { topBikes, loading, error } = useAPI();
-  const navigation = useNavigation();
 
   const clearInput = () => {
     setSearchText("");
@@ -111,7 +110,7 @@ export default function Index() {
           )}
         </View>
         <View style={styles.homeNav}>
-          <Link href="/bikes">
+          <Link href="/adults">
             <View style={styles.hnlink}>
               <MaterialIcons name="pedal-bike" size={64} color="#355E3B" />
               <Text>Bikes</Text>
